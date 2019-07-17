@@ -23,11 +23,13 @@ class LabelFile(object):
     # suffix = '.lif'
     suffix = XML_EXT
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, bnd_flag=None, attr_flag=None):
         self.shapes = ()
         self.imagePath = None
         self.imageData = None
         self.verified = False
+        self.attr_flag = attr_flag
+        self.bnd_flag = bnd_flag
 
     def savePascalVocFormat(self, filename, shapes, imagePath, imageData,
                             lineColor=None, fillColor=None, databaseSrc=None):
@@ -42,16 +44,23 @@ class LabelFile(object):
         imageShape = [image.height(), image.width(),
                       1 if image.isGrayscale() else 3]
         writer = PascalVocWriter(imgFolderName, imgFileName,
-                                 imageShape, localImgPath=imagePath)
+                                 imageShape, localImgPath=imagePath,
+                                 bnd_flag=self.bnd_flag, attr_flag=self.attr_flag)
         writer.verified = self.verified
 
         for shape in shapes:
             points = shape['points']
             label = shape['label']
+
             # Add Chris
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
-            writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
+            # 特殊的属性标注
+            if label in writer.attr_map.keys():
+                writer.set_attr_flag(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label)
+            # 正常的标注框
+            else:
+                writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
 
         writer.save(targetFile=filename)
         return

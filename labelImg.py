@@ -10,21 +10,26 @@ import subprocess
 
 from functools import partial
 from collections import defaultdict
+# pyqt5  for  pyinstaller
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
-except ImportError:
-    # needed for py3+qt4
-    # Ref:
-    # http://pyqt.sourceforge.net/Docs/PyQt4/incompatible_apis.html
-    # http://stackoverflow.com/questions/21217399/pyqt4-qtcore-qvariant-object-instead-of-a-string
-    if sys.version_info.major >= 3:
-        import sip
-        sip.setapi('QVariant', 2)
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+
+# try:
+#     from PyQt5.QtGui import *
+#     from PyQt5.QtCore import *
+#     from PyQt5.QtWidgets import *
+# except ImportError:
+#     # needed for py3+qt4
+#     # Ref:
+#     # http://pyqt.sourceforge.net/Docs/PyQt4/incompatible_apis.html
+#     # http://stackoverflow.com/questions/21217399/pyqt4-qtcore-qvariant-object-instead-of-a-string
+#     if sys.version_info.major >= 3:
+#         import sip
+#         sip.setapi('QVariant', 2)
+#     from PyQt4.QtGui import *
+#     from PyQt4.QtCore import *
 
 from libs.resources import *
 from libs.constants import *
@@ -102,6 +107,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.screencast = "https://youtu.be/p0nR2YsCY_U"
 
         # Load predefined classes to the list
+        self.attr_flag = {}
+        self.bndbox_flag = {}
         self.loadPredefinedClasses(defaultPrefdefClassFile)
 
         # Main widgets and related state.
@@ -776,7 +783,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def saveLabels(self, annotationFilePath):
         annotationFilePath = ustr(annotationFilePath)
         if self.labelFile is None:
-            self.labelFile = LabelFile()
+            self.labelFile = LabelFile(bnd_flag=self.bndbox_flag, attr_flag=self.attr_flag)
             self.labelFile.verified = self.canvas.verified
 
         def format_shape(s):
@@ -982,7 +989,7 @@ class MainWindow(QMainWindow, WindowMixin):
         if unicodeFilePath and os.path.exists(unicodeFilePath):
             if LabelFile.isLabelFile(unicodeFilePath):
                 try:
-                    self.labelFile = LabelFile(unicodeFilePath)
+                    self.labelFile = LabelFile(unicodeFilePath, bnd_flag=self.bndbox_flag, attr_flag=self.attr_flag)
                 except LabelFileError as e:
                     self.errorMessage(u'Error opening file',
                                       (u"<p><b>%s</b></p>"
@@ -1401,10 +1408,34 @@ class MainWindow(QMainWindow, WindowMixin):
             with codecs.open(predefClassesFile, 'r', 'utf8') as f:
                 for line in f:
                     line = line.strip()
-                    if self.labelHist is None:
-                        self.labelHist = [line]
+                    config = line.split(",")
+                    if len(config) >= 2:
+                        self.bndbox_flag[config[0]] = config[1]
                     else:
-                        self.labelHist.append(line)
+                        self.bndbox_flag[config[0]] = config[0]
+                    if self.labelHist is None:
+                        self.labelHist = [config[0]]
+                    else:
+                        self.labelHist.append(config[0])
+
+            # 加载特殊标签
+            attr_file = os.path.join(os.path.split(predefClassesFile)[0], "predefined_attr.txt")
+            if not os.path.exists(attr_file):
+                print("特殊标签配置文件不存在：{}".format(attr_file))
+                return
+
+            with codecs.open(attr_file, 'r', 'utf8') as f:
+                for line in f:
+                    line = line.strip()
+                    config = line.split(",")
+                    if len(config) >= 2:
+                        self.attr_flag[config[0]] = config[1]
+                    else:
+                        self.attr_flag[config[0]] = config[0]
+                    if self.labelHist is None:
+                        self.labelHist = [config[0]]
+                    else:
+                        self.labelHist.append(config[0])
 
     def loadPascalXMLByFilename(self, xmlPath):
         if self.filePath is None:
@@ -1414,7 +1445,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.set_format(FORMAT_PASCALVOC)
 
-        tVocParseReader = PascalVocReader(xmlPath)
+        tVocParseReader = PascalVocReader(xmlPath, self.bndbox_flag, self.attr_flag)
         shapes = tVocParseReader.getShapes()
         self.loadLabels(shapes)
         self.canvas.verified = tVocParseReader.verified

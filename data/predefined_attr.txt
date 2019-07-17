@@ -1,0 +1,4 @@
+红框,red
+长宽比改变,change
+人为因素,human
+成像污染,contaminate

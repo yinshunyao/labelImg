@@ -1,15 +1,12 @@
-dog
-person
-cat
-tv
-car
-meatballs
-marinara sauce
-tomato soup
-chicken noodle soup
-french onion soup
-chicken breast
-ribs
-pulled pork
-hamburger
-cavity
+管帽正常,capnormal 
+管帽丢失,capmissing
+绝缘子异常,jabnormal
+绝缘子正常,jnormal
+销钉异常,pinreverse
+销钉正常,pinnormal
+U型环正常,unormal
+U型环丢失,umissing
+等电位线正常,penormal
+等电位线丢失,pemissing
+sparenormal
+sparemissing

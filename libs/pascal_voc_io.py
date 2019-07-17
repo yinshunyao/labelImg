@@ -12,9 +12,19 @@ from libs.ustr import ustr
 XML_EXT = '.xml'
 ENCODE_METHOD = DEFAULT_ENCODING
 
+# 增加特殊的标注框，指定图片属性
+attr_flag_example = {
+    "红框": "red",    # 默认well
+    "长宽比改变": "change",
+    # "正常": "well",
+    "人为因素": "human",
+    "成像污染": "contaminate",
+}
+
+
 class PascalVocWriter:
 
-    def __init__(self, foldername, filename, imgSize,databaseSrc='Unknown', localImgPath=None):
+    def __init__(self, foldername, filename, imgSize,databaseSrc='Unknown', localImgPath=None,bnd_flag=None, attr_flag=None):
         self.foldername = foldername
         self.filename = filename
         self.databaseSrc = databaseSrc
@@ -22,6 +32,26 @@ class PascalVocWriter:
         self.boxlist = []
         self.localImgPath = localImgPath
         self.verified = False
+        # 定制换bnd，可能涉及展示name到xml标签转换
+        self.bnd_map = bnd_flag or {}
+        # 属性标签传递进来
+        self.attr_map = attr_flag or {}
+        self.attr_flag = {}
+        for k, attr in self.attr_map.items():
+            self.attr_flag[attr] = ""
+
+    def set_attr_flag(self, xmin, ymin, xmax, ymax, label):
+        """
+        设置特殊的属性标签
+        :param xmin:
+        :param ymin:
+        :param xmax:
+        :param ymax:
+        :param label:
+        :return:
+        """
+        attr = self.attr_map[label]
+        self.attr_flag[attr] = dict(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
 
     def prettify(self, elem):
         """
@@ -47,6 +77,26 @@ class PascalVocWriter:
         top = Element('annotation')
         if self.verified:
             top.set('verified', 'yes')
+
+        # 其他自由属性设置
+        for k, v in self.attr_flag.items():
+            k_node = SubElement(top, k)
+            flag = SubElement(k_node, "flag")
+            if not v:
+                flag.text = "false"
+                continue
+
+            flag.text = "true"
+            bndbox = SubElement(k_node, 'bndbox')
+            xmin = SubElement(bndbox, 'xmin')
+            xmin.text = str(v['xmin'])
+            ymin = SubElement(bndbox, 'ymin')
+            ymin.text = str(v['ymin'])
+            xmax = SubElement(bndbox, 'xmax')
+            xmax.text = str(v['xmax'])
+            ymax = SubElement(bndbox, 'ymax')
+            ymax.text = str(v['ymax'])
+
 
         folder = SubElement(top, 'folder')
         folder.text = self.foldername
@@ -79,7 +129,8 @@ class PascalVocWriter:
 
     def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult):
         bndbox = {'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax}
-        bndbox['name'] = name
+        label = self.bnd_map.get(name) or name
+        bndbox['name'] = label
         bndbox['difficult'] = difficult
         self.boxlist.append(bndbox)
 
@@ -126,16 +177,25 @@ class PascalVocWriter:
 
 class PascalVocReader:
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, bnd_flag=None, attr_flag=None):
         # shapes type:
         # [labbel, [(x1,y1), (x2,y2), (x3,y3), (x4,y4)], color, color, difficult]
         self.shapes = []
         self.filepath = filepath
         self.verified = False
+        # 标注框转换
+        self.bnd_flag = {}
+        for k, v in (bnd_flag or {}).items():
+            self.bnd_flag[v] = k
+        # 属性标签传递进来
+        self.attr_map = {}
+        for k, v in (attr_flag or {}).items():
+            self.attr_map[v] = k
+
         try:
             self.parseXML()
-        except:
-            pass
+        except Exception as e:
+            print("标签加载异常：{}".format(e))
 
     def getShapes(self):
         return self.shapes
@@ -160,6 +220,18 @@ class PascalVocReader:
         except KeyError:
             self.verified = False
 
+        # 加载属性，并生成特殊的标记框
+        for k in self.attr_map.keys():
+            try:
+                attr = xmltree.find(k)
+                # 如果标记过，则获取边框
+                if attr.find('flag').text == "true":
+                    # 英文转中文
+                    self.addShape(self.attr_map.get(k) or k, attr.find("bndbox"), False)
+            except:
+                # xml标签中没有找到，默认为空,false
+                pass
+
         for object_iter in xmltree.findall('object'):
             bndbox = object_iter.find("bndbox")
             label = object_iter.find('name').text
@@ -167,5 +239,5 @@ class PascalVocReader:
             difficult = False
             if object_iter.find('difficult') is not None:
                 difficult = bool(int(object_iter.find('difficult').text))
-            self.addShape(label, bndbox, difficult)
+            self.addShape(self.bnd_flag.get(label) or label, bndbox, difficult)
         return True
