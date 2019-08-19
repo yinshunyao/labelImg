@@ -216,7 +216,7 @@ class MainWindow(QMainWindow, WindowMixin):
         openAnnotation = action(getStr('openAnnotation'), self.openAnnotationDialog,
                                 'Ctrl+Shift+O', 'open', getStr('openAnnotationDetail'))
 
-        openNextImg = action(getStr('nextImg'), self.openNextImg,
+        openNextImg = action(getStr('nextImg'), self.save_and_open,
                              'd', 'next', getStr('nextImgDetail'))
 
         openPrevImg = action(getStr('prevImg'), self.openPrevImg,
@@ -1302,6 +1302,10 @@ class MainWindow(QMainWindow, WindowMixin):
             savedPath = os.path.join(imgFileDir, savedFileName)
             self._saveFile(savedPath if self.labelFile
                            else self.saveFileDialog(removeExt=False))
+
+    def save_and_open(self, _value=False):
+        self.saveFile(_value)
+        self.openNextImg(_value)
 
     def saveFileAs(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"
