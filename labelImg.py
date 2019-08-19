@@ -226,7 +226,7 @@ class MainWindow(QMainWindow, WindowMixin):
                         'space', 'verify', getStr('verifyImgDetail'))
 
         save = action(getStr('save'), self.saveFile,
-                      'Ctrl+S', 'save', getStr('saveDetail'), enabled=False)
+                      's', 'save', getStr('saveDetail'), enabled=False)#Ctrl+S改s
 
         save_format = action('&PascalVOC', self.change_format,
                       'Ctrl+', 'format_voc', getStr('changeSaveFormat'), enabled=True)
@@ -251,7 +251,7 @@ class MainWindow(QMainWindow, WindowMixin):
         delete = action(getStr('delBox'), self.deleteSelectedShape,
                         'Delete', 'delete', getStr('delBoxDetail'), enabled=False)
         copy = action(getStr('dupBox'), self.copySelectedShape,
-                      'Ctrl+D', 'copy', getStr('dupBoxDetail'),
+                      'c', 'copy', getStr('dupBoxDetail'),  #Ctrl+D 改 c  复制
                       enabled=False)
 
         advancedMode = action(getStr('advancedMode'), self.toggleAdvancedMode,
@@ -277,13 +277,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.zoomWidget.setEnabled(False)
 
         zoomIn = action(getStr('zoomin'), partial(self.addZoom, 10),
-                        'Ctrl++', 'zoom-in', getStr('zoominDetail'), enabled=False)
+                        'q', 'zoom-in', getStr('zoominDetail'), enabled=False)#Ctrl++ 改 q  放大
         zoomOut = action(getStr('zoomout'), partial(self.addZoom, -10),
-                         'Ctrl+-', 'zoom-out', getStr('zoomoutDetail'), enabled=False)
+                         'e', 'zoom-out', getStr('zoomoutDetail'), enabled=False)#Ctrl+- 改e  缩小
         zoomOrg = action(getStr('originalsize'), partial(self.setZoom, 100),
                          'Ctrl+=', 'zoom', getStr('originalsizeDetail'), enabled=False)
         fitWindow = action(getStr('fitWin'), self.setFitWindow,
-                           'Ctrl+F', 'fit-window', getStr('fitWinDetail'),
+                           'r', 'fit-window', getStr('fitWinDetail'),#Ctrl+F 改r   还原
                            checkable=True, enabled=False)
         fitWidth = action(getStr('fitWidth'), self.setFitWidth,
                           'Ctrl+Shift+F', 'fit-width', getStr('fitWidthDetail'),
@@ -300,7 +300,7 @@ class MainWindow(QMainWindow, WindowMixin):
         }
 
         edit = action(getStr('editLabel'), self.editLabel,
-                      'Ctrl+E', 'edit', getStr('editLabelDetail'),
+                      'g', 'edit', getStr('editLabelDetail'), #Ctrl+E 改g 编辑
                       enabled=False)
         self.editButton.setDefaultAction(edit)
 
@@ -1405,25 +1405,11 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadPredefinedClasses(self, predefClassesFile):
         if os.path.exists(predefClassesFile) is True:
-            with codecs.open(predefClassesFile, 'r', 'utf8') as f:
-                for line in f:
-                    line = line.strip()
-                    config = line.split(",")
-                    if len(config) >= 2:
-                        self.bndbox_flag[config[0]] = config[1]
-                    else:
-                        self.bndbox_flag[config[0]] = config[0]
-                    if self.labelHist is None:
-                        self.labelHist = [config[0]]
-                    else:
-                        self.labelHist.append(config[0])
-
             # 加载特殊标签
             attr_file = os.path.join(os.path.split(predefClassesFile)[0], "predefined_attr.txt")
             if not os.path.exists(attr_file):
                 print("特殊标签配置文件不存在：{}".format(attr_file))
                 return
-
             with codecs.open(attr_file, 'r', 'utf8') as f:
                 for line in f:
                     line = line.strip()
@@ -1432,6 +1418,19 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.attr_flag[config[0]] = config[1]
                     else:
                         self.attr_flag[config[0]] = config[0]
+                    if self.labelHist is None:
+                        self.labelHist = [config[0]]
+                    else:
+                        self.labelHist.append(config[0])
+
+            with codecs.open(predefClassesFile, 'r', 'utf8') as f:
+                for line in f:
+                    line = line.strip()
+                    config = line.split(",")
+                    if len(config) >= 2:
+                        self.bndbox_flag[config[0]] = config[1]
+                    else:
+                        self.bndbox_flag[config[0]] = config[0]
                     if self.labelHist is None:
                         self.labelHist = [config[0]]
                     else:

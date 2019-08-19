@@ -14,11 +14,12 @@ ENCODE_METHOD = DEFAULT_ENCODING
 
 # 增加特殊的标注框，指定图片属性
 attr_flag_example = {
-    "红框": "red",    # 默认well
-    "长宽比改变": "change",
+    "{不能做样本}": "nosample",
+    "[红框]": "red",    # 默认well
+    "[长宽比改变]": "change",
     # "正常": "well",
-    "人为因素": "human",
-    "成像污染": "contaminate",
+    "[人为因素]": "human",
+    "[成像污染]": "contaminate",
 }
 
 
