@@ -15,6 +15,7 @@ ENCODE_METHOD = DEFAULT_ENCODING
 # 增加特殊的标注框，指定图片属性
 attr_flag_example = {
     "{不能做样本}": "nosample",
+    "{全部正常}" : "allnormal",
     "[红框]": "red",    # 默认well
     "[长宽比改变]": "change",
     # "正常": "well",
