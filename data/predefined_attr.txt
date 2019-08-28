@@ -1,4 +1,5 @@
 {不能做样本},nosample
+{全部正常},allnormal
 [红框],red
 [长宽比改变],change
 [人为因素],human
