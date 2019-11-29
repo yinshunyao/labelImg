@@ -14,7 +14,7 @@ from libs.utils import distance
 
 CURSOR_DEFAULT = Qt.ArrowCursor
 CURSOR_POINT = Qt.PointingHandCursor
-CURSOR_DRAW = Qt.CrossCursor
+CURSOR_DRAW = Qt.CrossCursor  # CrossCursor CustomCursor
 CURSOR_MOVE = Qt.ClosedHandCursor
 CURSOR_GRAB = Qt.OpenHandCursor
 
@@ -468,7 +468,7 @@ class Canvas(QWidget):
             p.drawRect(leftTop.x(), leftTop.y(), rectWidth, rectHeight)
 
         if self.drawing() and not self.prevPoint.isNull() and not self.outOfPixmap(self.prevPoint):
-            p.setPen(QColor(0, 0, 0))
+            p.setPen(QColor(255, 0, 255))
             p.drawLine(self.prevPoint.x(), 0, self.prevPoint.x(), self.pixmap.height())
             p.drawLine(0, self.prevPoint.y(), self.pixmap.width(), self.prevPoint.y())
 
@@ -711,6 +711,9 @@ class Canvas(QWidget):
             QApplication.setOverrideCursor(cursor)
         else:
             QApplication.changeOverrideCursor(cursor)
+
+
+
 
     def restoreCursor(self):
         QApplication.restoreOverrideCursor()

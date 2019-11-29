@@ -1304,7 +1304,13 @@ class MainWindow(QMainWindow, WindowMixin):
                            else self.saveFileDialog(removeExt=False))
 
     def save_and_open(self, _value=False):
-        self.saveFile(_value)
+        """
+        作为下一张图片回调，检查dirty字段提供无修改直接显示下一张。
+        :param _value:
+        :return:
+        """
+        if self.dirty:
+            self.saveFile(_value)
         self.openNextImg(_value)
 
     def saveFileAs(self, _value=False):

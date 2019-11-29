@@ -89,7 +89,7 @@ class Shape(object):
             color = self.select_line_color if self.selected else self.line_color
             pen = QPen(color)
             # Try using integer sizes for smoother drawing(?)
-            pen.setWidth(max(1, int(round(2.0 / self.scale))))
+            pen.setWidth(max(5, int(round(2.0 / self.scale))))  # 修改宽度到至少5。
             painter.setPen(pen)
 
             line_path = QPainterPath()
@@ -111,16 +111,20 @@ class Shape(object):
             painter.drawPath(vrtx_path)
             painter.fillPath(vrtx_path, self.vertex_fill_color)
 
+            # TODO：未能找到paintLabel变量的修改位置，只能强制显示label。 fix it！
+            if self.label and self.label != "":
+                self.paintLabel = True
+
             # Draw text at the top-left
             if self.paintLabel:
                 min_x = sys.maxsize
                 min_y = sys.maxsize
                 for point in self.points:
                     min_x = min(min_x, point.x())
-                    min_y = min(min_y, point.y())
+                    min_y = min(min_y, point.y() - 5) #  边线加宽后增加2个像素偏移。
                 if min_x != sys.maxsize and min_y != sys.maxsize:
                     font = QFont()
-                    font.setPointSize(8)
+                    font.setPointSize(80)
                     font.setBold(True)
                     painter.setFont(font)
                     if(self.label == None):
