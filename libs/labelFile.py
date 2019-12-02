@@ -12,6 +12,7 @@ from libs.yolo_io import YOLOWriter
 from libs.pascal_voc_io import XML_EXT
 import os.path
 import sys
+from libs.label_manager import LabelManager
 
 
 class LabelFileError(Exception):
@@ -23,13 +24,13 @@ class LabelFile(object):
     # suffix = '.lif'
     suffix = XML_EXT
 
-    def __init__(self, filename=None, bnd_flag=None, attr_flag=None):
+    def __init__(self, label_manager: LabelManager, filename=None):
         self.shapes = ()
         self.imagePath = None
         self.imageData = None
         self.verified = False
-        self.attr_flag = attr_flag
-        self.bnd_flag = bnd_flag
+        # 将标签映射管理封装成一个对象
+        self.label_manager = label_manager
 
     def savePascalVocFormat(self, filename, shapes, imagePath, imageData,
                             lineColor=None, fillColor=None, databaseSrc=None):
@@ -45,7 +46,7 @@ class LabelFile(object):
                       1 if image.isGrayscale() else 3]
         writer = PascalVocWriter(imgFolderName, imgFileName,
                                  imageShape, localImgPath=imagePath,
-                                 bnd_flag=self.bnd_flag, attr_flag=self.attr_flag)
+                                 label_manager=self.label_manager)
         writer.verified = self.verified
 
         for shape in shapes:
@@ -56,7 +57,7 @@ class LabelFile(object):
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
             # 特殊的属性标注
-            if label in writer.attr_map.keys():
+            if label in self.label_manager.attr_key_list:
                 writer.set_attr_flag(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label)
             # 正常的标注框
             else:

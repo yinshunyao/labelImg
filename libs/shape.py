@@ -124,7 +124,7 @@ class Shape(object):
                     min_y = min(min_y, point.y() - 5) #  边线加宽后增加2个像素偏移。
                 if min_x != sys.maxsize and min_y != sys.maxsize:
                     font = QFont()
-                    font.setPointSize(80)
+                    font.setPointSize(18)
                     font.setBold(True)
                     painter.setFont(font)
                     if(self.label == None):

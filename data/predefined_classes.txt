@@ -17,3 +17,4 @@ U型环丢失,umissing
 吊弦脱落,susdrop
 吊弦弯曲,suslimp
 吊弦标签,suslabel
+杆号,ganhao,

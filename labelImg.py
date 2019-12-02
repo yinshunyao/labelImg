@@ -7,7 +7,7 @@ import platform
 import re
 import sys
 import subprocess
-
+from libs.label_manager import LabelManager
 from functools import partial
 from collections import defaultdict
 # pyqt5  for  pyinstaller
@@ -107,9 +107,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.screencast = "https://youtu.be/p0nR2YsCY_U"
 
         # Load predefined classes to the list
-        self.attr_flag = {}
-        self.bndbox_flag = {}
-        self.loadPredefinedClasses(defaultPrefdefClassFile)
+        # 自定义标签管理类
+        self.label_manager = LabelManager(defaultPrefdefClassFile)
+        self.labelHist = self.label_manager.label_view_list
 
         # Main widgets and related state.
         self.labelDialog = LabelDialog(parent=self, listItem=self.labelHist)
@@ -783,7 +783,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def saveLabels(self, annotationFilePath):
         annotationFilePath = ustr(annotationFilePath)
         if self.labelFile is None:
-            self.labelFile = LabelFile(bnd_flag=self.bndbox_flag, attr_flag=self.attr_flag)
+            self.labelFile = LabelFile(label_manager=self.label_manager)
             self.labelFile.verified = self.canvas.verified
 
         def format_shape(s):
@@ -874,8 +874,9 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.actions.editMode.setEnabled(True)
             self.setDirty()
 
-            if text not in self.labelHist:
-                self.labelHist.append(text)
+            # by yinshunyao 暂时不记录
+            # if text not in self.labelHist:
+            #     self.labelHist.append(text)
         else:
             # self.canvas.undoLastLine()
             self.canvas.resetAllLines()
@@ -964,6 +965,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadFile(self, filePath=None):
         """Load the specified file, or the last opened file if None."""
+        # 清空标签
+        self.label_manager.clear()
+
         self.resetState()
         self.canvas.setEnabled(False)
         if filePath is None:
@@ -989,7 +993,7 @@ class MainWindow(QMainWindow, WindowMixin):
         if unicodeFilePath and os.path.exists(unicodeFilePath):
             if LabelFile.isLabelFile(unicodeFilePath):
                 try:
-                    self.labelFile = LabelFile(unicodeFilePath, bnd_flag=self.bndbox_flag, attr_flag=self.attr_flag)
+                    self.labelFile = LabelFile(filename=unicodeFilePath, label_manager=self.label_manager)
                 except LabelFileError as e:
                     self.errorMessage(u'Error opening file',
                                       (u"<p><b>%s</b></p>"
@@ -1336,10 +1340,13 @@ class MainWindow(QMainWindow, WindowMixin):
         return ''
 
     def _saveFile(self, annotationFilePath):
-        if annotationFilePath and self.saveLabels(annotationFilePath):
-            self.setClean()
-            self.statusBar().showMessage('Saved to  %s' % annotationFilePath)
-            self.statusBar().show()
+        try:
+            if annotationFilePath and self.saveLabels(annotationFilePath):
+                self.setClean()
+                self.statusBar().showMessage('Saved to  %s' % annotationFilePath)
+                self.statusBar().show()
+        except Exception as e:
+            QMessageBox.warning(self, "出错", "保存过程发生异常：{}".format(e))
 
     def closeFile(self, _value=False):
         if not self.mayContinue():
@@ -1413,39 +1420,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.canvas.endMove(copy=False)
         self.setDirty()
 
-    def loadPredefinedClasses(self, predefClassesFile):
-        if os.path.exists(predefClassesFile) is True:
-            # 加载特殊标签
-            attr_file = os.path.join(os.path.split(predefClassesFile)[0], "predefined_attr.txt")
-            if not os.path.exists(attr_file):
-                print("特殊标签配置文件不存在：{}".format(attr_file))
-                return
-            with codecs.open(attr_file, 'r', 'utf8') as f:
-                for line in f:
-                    line = line.strip()
-                    config = line.split(",")
-                    if len(config) >= 2:
-                        self.attr_flag[config[0]] = config[1]
-                    else:
-                        self.attr_flag[config[0]] = config[0]
-                    if self.labelHist is None:
-                        self.labelHist = [config[0]]
-                    else:
-                        self.labelHist.append(config[0])
-
-            with codecs.open(predefClassesFile, 'r', 'utf8') as f:
-                for line in f:
-                    line = line.strip()
-                    config = line.split(",")
-                    if len(config) >= 2:
-                        self.bndbox_flag[config[0]] = config[1]
-                    else:
-                        self.bndbox_flag[config[0]] = config[0]
-                    if self.labelHist is None:
-                        self.labelHist = [config[0]]
-                    else:
-                        self.labelHist.append(config[0])
-
     def loadPascalXMLByFilename(self, xmlPath):
         if self.filePath is None:
             return
@@ -1454,7 +1428,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.set_format(FORMAT_PASCALVOC)
 
-        tVocParseReader = PascalVocReader(xmlPath, self.bndbox_flag, self.attr_flag)
+        tVocParseReader = PascalVocReader(xmlPath, label_manager=self.label_manager)
         shapes = tVocParseReader.getShapes()
         self.loadLabels(shapes)
         self.canvas.verified = tVocParseReader.verified
