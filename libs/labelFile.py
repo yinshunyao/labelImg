@@ -57,11 +57,7 @@ class LabelFile(object):
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
             # 特殊的属性标注
-            if label in self.label_manager.attr_key_list:
-                writer.set_attr_flag(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label)
-            # 正常的标注框
-            else:
-                writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
+            writer.add_label(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
 
         writer.save(targetFile=filename)
         return
@@ -88,7 +84,7 @@ class LabelFile(object):
             # Add Chris
             difficult = int(shape['difficult'])
             bndbox = LabelFile.convertPoints2BndBox(points)
-            writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
+            writer.add_label(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
 
         writer.save(targetFile=filename, classList=classList)
         return

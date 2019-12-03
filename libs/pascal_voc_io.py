@@ -38,18 +38,6 @@ class PascalVocWriter:
         # 标签管理转换器
         self.label_manager = label_manager
 
-    def set_attr_flag(self, xmin, ymin, xmax, ymax, label):
-        """
-        设置特殊的属性标签
-        :param xmin:
-        :param ymin:
-        :param xmax:
-        :param ymax:
-        :param label:
-        :return:
-        """
-        self.label_manager.set_attr( xmin, ymin, xmax, ymax, label)
-
     def prettify(self, elem):
         """
             Return a pretty-printed XML string for the Element.
@@ -124,8 +112,18 @@ class PascalVocWriter:
         segmented.text = '0'
         return top
 
-    def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult):
-        self.label_manager.add_bbox(xmin, ymin, xmax, ymax, name, difficult)
+    def add_label(self, xmin, ymin, xmax, ymax, name, difficult):
+        """
+        新的标签处理
+        :param xmin:
+        :param ymin:
+        :param xmax:
+        :param ymax:
+        :param name:
+        :param difficult:
+        :return:
+        """
+        self.label_manager.new_attr_or_bbox(xmin, ymin, xmax, ymax, name, difficult)
 
     def appendObjects(self, top):
         for each_object in self.label_manager.bbox_flag:

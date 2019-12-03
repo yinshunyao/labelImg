@@ -557,6 +557,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dirty = False
         self.actions.save.setEnabled(False)
         self.actions.create.setEnabled(True)
+        self.label_manager.clear()
 
     def toggleActions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
@@ -965,9 +966,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadFile(self, filePath=None):
         """Load the specified file, or the last opened file if None."""
-        # 清空标签
-        self.label_manager.clear()
-
         self.resetState()
         self.canvas.setEnabled(False)
         if filePath is None:

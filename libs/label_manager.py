@@ -108,6 +108,32 @@ class LabelManager:
         """
         return list(self._attr_dict.keys()) + list(self._bbox_dict.keys())
 
+    def _get_attr_key_and_value(self, label: str):
+        """
+        根据标签获取name和value
+        :param label:
+        :return:
+        """
+        # 包含了标签和标记值
+        if INTER_FLAG in label:
+            labels = label.split(INTER_FLAG)
+            name = labels[0] + INTER_FLAG
+            value_regex = self._attr_dict.get(name, {}).get(VALUE_FLAG)
+            # 正则条件判断
+            if value_regex and not re.search(value_regex, labels[1]):
+                raise Exception("标签{}不满足正则配置约束{}".format(label, value_regex))
+
+            value = labels[1]
+            if not value:
+                raise Exception("标签{}需要赋值，不能为空".format(label))
+        else:
+            name = label
+            value = ""
+        name = self._attr_dict.get(name, {}).get(_KEY)
+        if not name:
+            raise Exception("标签{}没有配置到配置文件中".format(label))
+        return name, value
+
     def _get_bbox_key_and_value(self, label: str):
         """
         根据标签获取name和value
@@ -158,7 +184,7 @@ class LabelManager:
 
         raise Exception("没有配置关键字{}".format(key))
 
-    def set_attr(self, xmin, ymin, xmax, ymax, label):
+    def _set_attr(self, xmin, ymin, xmax, ymax, label):
         """
         设置属性
         :param xmin:
@@ -168,10 +194,10 @@ class LabelManager:
         :param label:
         :return:
         """
-        name, value = self._get_bbox_key_and_value(label)
+        name, value = self._get_attr_key_and_value(label)
         self.attr_flag[name] = dict(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
 
-    def add_bbox(self, xmin, ymin, xmax, ymax, label, difficult):
+    def _add_bbox(self, xmin, ymin, xmax, ymax, label, difficult):
         bndbox = {'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax}
         label, value = self._get_bbox_key_and_value(label)
         bndbox['name'] = label or label
@@ -180,3 +206,11 @@ class LabelManager:
             bndbox["value"] = value
 
         self.bbox_flag.append(bndbox)
+
+    def new_attr_or_bbox(self, xmin, ymin, xmax, ymax, label, difficult):
+        # print("属性关键字", self._attr_dict.keys())
+        if label in self._attr_dict.keys():
+            self._set_attr(xmin, ymin, xmax, ymax, label)
+        else:
+            self._add_bbox(xmin, ymin, xmax, ymax, label, difficult)
+
