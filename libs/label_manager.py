@@ -124,8 +124,9 @@ class LabelManager:
                 raise Exception("标签{}不满足正则配置约束{}".format(label, value_regex))
 
             value = labels[1]
-            if not value:
-                raise Exception("标签{}需要赋值，不能为空".format(label))
+            # 根据需求，value（例如杆号）可以为空
+            # if not value:
+            #     raise Exception("标签{}需要赋值，不能为空".format(label))
         else:
             name = label
             value = ""
@@ -150,8 +151,8 @@ class LabelManager:
                 raise Exception("标签{}不满足正则配置约束{}".format(label, value_regex))
 
             value = labels[1]
-            if not value:
-                raise Exception("标签{}需要赋值，不能为空".format(label))
+            # if not value:
+            #     raise Exception("标签{}需要赋值，不能为空".format(label))
         else:
             name = label
             value = ""
