@@ -14,6 +14,7 @@ from collections import defaultdict
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+import logging
 
 
 # try:
@@ -112,7 +113,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.labelHist = self.label_manager.label_view_list
 
         # Main widgets and related state.
+        # 标注主菜单
         self.labelDialog = LabelDialog(parent=self, listItem=self.labelHist)
+
 
         self.itemsToShapes = {}
         self.shapesToItems = {}
@@ -135,11 +138,18 @@ class MainWindow(QMainWindow, WindowMixin):
         self.diffcButton = QCheckBox(getStr('useDifficult'))
         self.diffcButton.setChecked(False)
         self.diffcButton.stateChanged.connect(self.btnstate)
+
+        # 编辑按钮
         self.editButton = QToolButton()
         self.editButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
+        # 增加判断ai框是否正确按钮
+        self.judgeButton = QToolButton()
+        self.judgeButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
         # Add some of widgets to listLayout
         listLayout.addWidget(self.editButton)
+        listLayout.addWidget(self.judgeButton)
         listLayout.addWidget(self.diffcButton)
         listLayout.addWidget(useDefaultLabelContainer)
 
@@ -243,6 +253,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         createMode = action(getStr('crtBox'), self.setCreateMode,
                             'w', 'new', getStr('crtBoxDetail'), enabled=False)
+        # 菜单
         editMode = action('&Edit\nRectBox', self.setEditMode,
                           'Ctrl+J', 'edit', u'Move and edit Boxs', enabled=False)
 
@@ -304,6 +315,12 @@ class MainWindow(QMainWindow, WindowMixin):
                       enabled=False)
         self.editButton.setDefaultAction(edit)
 
+        # 设置快捷键等
+        judge = action(getStr('judgeLabel'), self.JudgeLabel,
+                      'j', 'judge', getStr('judgeLabelDetail'), #Ctrl+E 改g 编辑
+                      enabled=False)
+        self.judgeButton.setDefaultAction(judge)
+
         shapeLineColor = action(getStr('shapeLineColor'), self.chshapeLineColor,
                                 icon='color_line', tip=getStr('shapeLineColorDetail'),
                                 enabled=False)
@@ -317,7 +334,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Lavel list context menu.
         labelMenu = QMenu()
-        addActions(labelMenu, (edit, delete))
+        # 标签列表右键注册操作
+        addActions(labelMenu, (edit, delete, judge))
         self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
         self.labelList.customContextMenuRequested.connect(
             self.popLabelListMenu)
@@ -330,32 +348,39 @@ class MainWindow(QMainWindow, WindowMixin):
         self.drawSquaresOption.triggered.connect(self.toogleDrawSquare)
 
         # Store actions for further handling.
+        # 操作
         self.actions = struct(save=save, save_format=save_format, saveAs=saveAs, open=open, close=close, resetAll = resetAll,
                               lineColor=color1, create=create, delete=delete, edit=edit, copy=copy,
                               createMode=createMode, editMode=editMode, advancedMode=advancedMode,
                               shapeLineColor=shapeLineColor, shapeFillColor=shapeFillColor,
                               zoom=zoom, zoomIn=zoomIn, zoomOut=zoomOut, zoomOrg=zoomOrg,
                               fitWindow=fitWindow, fitWidth=fitWidth,
+                              # 增加判断 不再菜单中
+                              judge=judge,
                               zoomActions=zoomActions,
                               fileMenuActions=(
                                   open, opendir, save, saveAs, close, resetAll, quit),
                               beginner=(), advanced=(),
-                              editMenu=(edit, copy, delete,
+                              # 编辑菜单
+                              editMenu=(edit, copy, delete, judge,
                                         None, color1, self.drawSquaresOption),
-                              beginnerContext=(create, edit, copy, delete),
+                              # 图片上右键
+                              beginnerContext=(create, edit, copy, delete, judge),
                               advancedContext=(createMode, editMode, edit, copy,
                                                delete, shapeLineColor, shapeFillColor),
                               onLoadActive=(
                                   close, create, createMode, editMode),
                               onShapesPresent=(saveAs, hideAll, showAll))
 
+        # 菜单
         self.menus = struct(
             file=self.menu('&File'),
             edit=self.menu('&Edit'),
             view=self.menu('&View'),
             help=self.menu('&Help'),
             recentFiles=QMenu('Open &Recent'),
-            labelList=labelMenu)
+            labelList=labelMenu,
+        )
 
         # Auto saving : Enable auto saving if pressing next
         self.autoSaving = QAction(getStr('autoSaveMode'), self)
@@ -520,6 +545,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.canvas.setEditing(True)
         self.populateModeActions()
         self.editButton.setVisible(not value)
+        self.judgeButton.setVisible(not value)
         if value:
             self.actions.createMode.setEnabled(True)
             self.actions.editMode.setEnabled(False)
@@ -679,6 +705,25 @@ class MainWindow(QMainWindow, WindowMixin):
             item.setBackground(generateColorByText(text))
             self.setDirty()
 
+    def JudgeLabel(self):
+        # 可编辑则可标注
+        if not self.canvas.editing():
+            return
+
+        item = self.currentItem()
+        if not item:
+            return
+
+        msg = "选择结果状态"
+        # 重新弹出框
+        dialog = LabelDialog(parent=self, listItem=self.label_manager.judge_view_list(item.text()))
+        text = dialog.popUp(msg)
+        # 返回结果处理
+        if text is not None and text != msg:
+            item.setText(text)
+            item.setBackground(generateColorByText(text))
+            self.setDirty()
+
     # Tzutalin 20160906 : Add file list and dock to move faster
     def fileitemDoubleClicked(self, item=None):
         currIndex = self.mImgList.index(ustr(item.text()))
@@ -716,6 +761,11 @@ class MainWindow(QMainWindow, WindowMixin):
 
     # React to canvas signals.
     def shapeSelectionChanged(self, selected=False):
+        """
+        框相关的菜单按键状态跟踪
+        :param selected:
+        :return:
+        """
         if self._noSelectionSlot:
             self._noSelectionSlot = False
         else:
@@ -724,9 +774,12 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.shapesToItems[shape].setSelected(True)
             else:
                 self.labelList.clearSelection()
+
+        # 是否展示操作按钮
         self.actions.delete.setEnabled(selected)
         self.actions.copy.setEnabled(selected)
         self.actions.edit.setEnabled(selected)
+        self.actions.judge.setEnabled(selected)
         self.actions.shapeLineColor.setEnabled(selected)
         self.actions.shapeFillColor.setEnabled(selected)
 
@@ -1344,6 +1397,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.statusBar().showMessage('Saved to  %s' % annotationFilePath)
                 self.statusBar().show()
         except Exception as e:
+            logging.warning("报错过程发生异常：{}".format(e), exc_info=1)
             QMessageBox.warning(self, "出错", "保存过程发生异常：{}".format(e))
 
     def closeFile(self, _value=False):

@@ -12,6 +12,7 @@ from collections import OrderedDict
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+from data.judge_classes import JudgeClassConfig
 
 
 # 本地保存xml的name关键字
@@ -53,6 +54,9 @@ def _load_file(file_name):
             if not k:
                 raise Exception("文件中{}配置{}非法".format(file_name, line))
 
+            if "*" in k or "#" in k or ";" in k:
+                print("包含特殊字符 * # ;的配置行不能使用")
+                continue
             if k in flag.keys():
                 raise Exception("文件中{}中存在重复的关键配置项：{}".format(file_name, k))
             flag[k] = {
@@ -80,8 +84,6 @@ class LabelManager:
 
         # 属性标记字典
         self._attr_dict = _load_file(self.attr_file)
-        # 标注框标记字典
-        self._bbox_dict = _load_file(self.predefine_class_file)
 
         # 属性记录
         self.attr_flag = {}
@@ -106,7 +108,15 @@ class LabelManager:
         可视化标签列表，例如管帽正常、管帽丢失、[成像污染]等等，包括属性设置以及标注框框设置等等
         :return:
         """
-        return list(self._attr_dict.keys()) + list(self._bbox_dict.keys())
+        return list(self._attr_dict.keys()) + list(JudgeClassConfig.get_label_list())
+
+    def judge_view_list(self, label):
+        """
+        根据 label 筛选
+        :param label:
+        :return:
+        """
+        return JudgeClassConfig.get_judge_label_list(label)
 
     def _get_attr_key_and_value(self, label: str):
         """
@@ -137,29 +147,31 @@ class LabelManager:
 
     def _get_bbox_key_and_value(self, label: str):
         """
-        根据标签获取name和value
+        根据标签获取key和value
         :param label:
         :return:
         """
         # 包含了标签和标记值
         if INTER_FLAG in label:
             labels = label.split(INTER_FLAG)
-            name = labels[0] + INTER_FLAG
-            value_regex = self._bbox_dict.get(name, {}).get(VALUE_FLAG)
+            # 如果没有填写杆号
+            if len(labels) == 1:
+                labels.append("")
+            key, value_regex = JudgeClassConfig.get_key_value(labels[0])
+            # name = labels[0] + INTER_FLAG
+            # value_regex = self._bbox_dict.get(name, {}).get(VALUE_FLAG)
             # 正则条件判断
             if value_regex and not re.search(value_regex, labels[1]):
                 raise Exception("标签{}不满足正则配置约束{}".format(label, value_regex))
 
             value = labels[1]
-            # if not value:
-            #     raise Exception("标签{}需要赋值，不能为空".format(label))
         else:
-            name = label
+            key = JudgeClassConfig.get_key(label)
             value = ""
-        name = self._bbox_dict.get(name, {}).get(_KEY)
-        if not name:
-            raise Exception("标签{}没有配置到配置文件中".format(label))
-        return name, value
+
+        if not key:
+            raise Exception("标注框{}没有配置到配置文件中".format(label))
+        return key, value
 
     def get_attr_name(self, key):
         """
@@ -179,11 +191,14 @@ class LabelManager:
         :param key:
         :return:
         """
-        for name, values in self._bbox_dict.items():
-            if isinstance(values, dict) and values.get(_KEY) == key:
-                return name
+        name, value = JudgeClassConfig.get_name_value(key)
+        if not name:
+            return "未知标签{}".format(key)
 
-        raise Exception("没有配置关键字{}".format(key))
+        if value is None:
+            return name
+        else:
+            return name + INTER_FLAG
 
     def _set_attr(self, xmin, ymin, xmax, ymax, label):
         """

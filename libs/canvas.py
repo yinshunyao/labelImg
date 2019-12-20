@@ -29,7 +29,7 @@ class Canvas(QWidget):
     shapeMoved = pyqtSignal()
     drawingPolygon = pyqtSignal(bool)
 
-    CREATE, EDIT = list(range(2))
+    CREATE, EDIT, JUDGE = list(range(3))
 
     epsilon = 11.0
 
@@ -85,6 +85,9 @@ class Canvas(QWidget):
     def editing(self):
         return self.mode == self.EDIT
 
+    def judging(self):
+        return self.mode == self.JUDGE
+
     def setEditing(self, value=True):
         self.mode = self.EDIT if value else self.CREATE
         if not value:  # Create
@@ -92,6 +95,15 @@ class Canvas(QWidget):
             self.deSelectShape()
         self.prevPoint = QPointF()
         self.repaint()
+
+    def setJudging(self, value=True):
+        self.mode = self.JUDGE if value else self.CREATE
+        if not value:  # Create
+            self.unHighlight()
+            self.deSelectShape()
+        self.prevPoint = QPointF()
+        self.repaint()
+
 
     def unHighlight(self):
         if self.hShape:
