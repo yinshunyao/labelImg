@@ -238,7 +238,7 @@ class PascalVocReader:
 
             # 可选的value值
             value = None
-            if object_iter.find(VALUE_FLAG) is not None:
+            if INTER_FLAG in name and object_iter.find(VALUE_FLAG) is not None:
                 value = str(object_iter.find(VALUE_FLAG).text)
             if value:
                 name += value
