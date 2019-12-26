@@ -317,7 +317,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # 设置快捷键等
         judge = action(getStr('judgeLabel'), self.JudgeLabel,
-                      'j', 'judge', getStr('judgeLabelDetail'), #Ctrl+E 改g 编辑
+                      'f', 'judge', getStr('judgeLabelDetail'), #Ctrl+E 改g 编辑
                       enabled=False)
         self.judgeButton.setDefaultAction(judge)
 
